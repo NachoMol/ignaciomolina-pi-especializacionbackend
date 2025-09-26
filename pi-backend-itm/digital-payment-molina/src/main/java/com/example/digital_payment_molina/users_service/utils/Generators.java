@@ -1,5 +1,7 @@
 package com.example.digital_payment_molina.users_service.utils;
 
+import lombok.AllArgsConstructor;
+
 import java.security.SecureRandom;
 import java.util.List;
 import java.util.Random;
