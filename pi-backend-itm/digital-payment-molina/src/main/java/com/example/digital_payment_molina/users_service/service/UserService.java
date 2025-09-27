@@ -60,11 +60,14 @@ public class UserService {
         );
     }
 
-    public String userLogin (String email, String password) {
-        Optional<User> optionalUser = userRepository.findByEmail(email);
-        if (optionalUser.isEmpty() || !optionalUser.get().getPassword().equals(password)) {
+    public String userLogin(String email, String rawPassword) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Email o contraseña incorrectos"));
+
+        if (!passwordEncoder.matches(rawPassword, user.getPassword())) {
             throw new RuntimeException("Email o contraseña incorrectos");
         }
+
         return jwtUtil.generateToken(email);
     }
 
