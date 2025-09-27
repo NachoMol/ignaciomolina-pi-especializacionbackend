@@ -5,6 +5,7 @@ import com.example.digital_payment_molina.users_service.dto.UserDto;
 import com.example.digital_payment_molina.users_service.model.User;
 import com.example.digital_payment_molina.users_service.repository.UserRepository;
 import com.example.digital_payment_molina.users_service.utils.Generators;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -21,8 +22,12 @@ public class UserService {
 
     public UserService(UserRepository userRepository) throws Exception {
         this.userRepository = userRepository;
-        // Cargar palabras de alias.txt
-        this.aliasWords = Files.readAllLines(Paths.get("src/main/resources/alias.txt"));
+        // Cargar alias.txt desde resources
+        try (var inputStream = new ClassPathResource("alias.txt").getInputStream()) {
+            this.aliasWords = new java.io.BufferedReader(new java.io.InputStreamReader(inputStream))
+                    .lines()
+                    .toList();
+        }
     }
 
     public UserDto registerUser(User user) {
