@@ -1,7 +1,10 @@
 package com.example.digital_payment_molina.users_service.controller;
-import com.example.digital_payment_molina.users_service.dto.UserDto;
+import com.example.digital_payment_molina.users_service.dto.JwtResponseDTO;
+import com.example.digital_payment_molina.users_service.dto.LoginRequestDTO;
+import com.example.digital_payment_molina.users_service.dto.UserDTO;
 import com.example.digital_payment_molina.users_service.model.User;
 import com.example.digital_payment_molina.users_service.service.UserService;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -20,7 +23,7 @@ public class UserController {
     @PostMapping("/register")
     public ResponseEntity<?> registerUser(@RequestBody User user) {
         try {
-            UserDto response = userService.registerUser(user);
+            UserDTO response = userService.registerUser(user);
             return ResponseEntity.status(201).body(response);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
@@ -28,4 +31,15 @@ public class UserController {
             return ResponseEntity.internalServerError().body("Error al registrar usuario");
         }
     }
+
+    @PostMapping("/login")
+    public ResponseEntity<?> login(@RequestBody LoginRequestDTO loginRequest) {
+        try {
+            String token = userService.userLogin(loginRequest.getEmail(), loginRequest.getPassword());
+                return ResponseEntity.ok(new JwtResponseDTO(token));
+            } catch (RuntimeException e) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(e.getMessage());
+            }
+        }
+
 }

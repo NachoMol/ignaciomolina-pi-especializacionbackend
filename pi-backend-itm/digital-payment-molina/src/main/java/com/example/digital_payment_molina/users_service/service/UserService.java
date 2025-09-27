@@ -1,22 +1,27 @@
 package com.example.digital_payment_molina.users_service.service;
 
 
-import com.example.digital_payment_molina.users_service.dto.UserDto;
+import com.example.digital_payment_molina.users_service.dto.UserDTO;
 import com.example.digital_payment_molina.users_service.model.User;
 import com.example.digital_payment_molina.users_service.repository.UserRepository;
+import com.example.digital_payment_molina.users_service.security.JwtUtil;
 import com.example.digital_payment_molina.users_service.utils.Generators;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class UserService {
 
+    @Autowired
     private final UserRepository userRepository;
+
+    @Autowired
+    private JwtUtil jwtUtil;
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
     private final List<String> aliasWords;
 
@@ -30,7 +35,7 @@ public class UserService {
         }
     }
 
-    public UserDto registerUser(User user) {
+    public UserDTO registerUser(User user) {
         if (userRepository.existsByEmail(user.getEmail())) {
             throw new RuntimeException("Email ya registrado");
         }
@@ -44,7 +49,7 @@ public class UserService {
 
         User saved = userRepository.save(user);
 
-        return new UserDto(
+        return new UserDTO(
                 saved.getId(),
                 saved.getNyap(),
                 saved.getDni(),
@@ -54,5 +59,14 @@ public class UserService {
                 saved.getAlias()
         );
     }
+
+    public String userLogin (String email, String password) {
+        Optional<User> optionalUser = userRepository.findByEmail(email);
+        if (optionalUser.isEmpty() || !optionalUser.get().getPassword().equals(password)) {
+            throw new RuntimeException("Email o contraseña incorrectos");
+        }
+        return jwtUtil.generateToken(email);
+    }
+
 
 }
