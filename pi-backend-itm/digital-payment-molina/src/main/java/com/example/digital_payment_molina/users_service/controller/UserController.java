@@ -34,12 +34,7 @@ public class UserController {
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequestDTO loginRequest) {
-        try {
-            String token = userService.userLogin(loginRequest.getEmail(), loginRequest.getPassword());
-                return ResponseEntity.ok(new JwtResponseDTO(token));
-            } catch (RuntimeException e) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(e.getMessage());
-            }
-        }
-
+        String token = userService.userLogin(loginRequest.getEmail(), loginRequest.getPassword());
+        return ResponseEntity.ok(new JwtResponseDTO(token));
+    }
 }
