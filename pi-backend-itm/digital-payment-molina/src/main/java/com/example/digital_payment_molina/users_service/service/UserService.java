@@ -5,6 +5,7 @@ import com.example.digital_payment_molina.users_service.dto.UserDTO;
 import com.example.digital_payment_molina.users_service.exceptions.ContrasenaIncorrectaException;
 import com.example.digital_payment_molina.users_service.exceptions.UsuarioNoEncontradoException;
 import com.example.digital_payment_molina.users_service.model.User;
+import com.example.digital_payment_molina.users_service.repository.TokenBlacklistRepository;
 import com.example.digital_payment_molina.users_service.repository.UserRepository;
 import com.example.digital_payment_molina.users_service.security.JwtUtil;
 import com.example.digital_payment_molina.users_service.utils.Generators;
@@ -26,6 +27,10 @@ public class UserService {
     private JwtUtil jwtUtil;
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
     private final List<String> aliasWords;
+
+    @Autowired
+    private TokenBlacklistRepository tokenBlacklistRepository;
+
 
     public UserService(UserRepository userRepository) throws Exception {
         this.userRepository = userRepository;
@@ -71,6 +76,25 @@ public class UserService {
         }
 
         return jwtUtil.generateToken(email);
+    }
+
+    public void logout(String token) {
+        // Si el token viene con "Bearer ", limpiarlo
+        if (token.startsWith("Bearer ")) {
+            token = token.substring(7);
+        }
+        try {
+            // Verificar que sea un token JWT válido
+            String email = jwtUtil.extractEmail(token);
+            System.out.println("Logout de usuario: " + email);
+
+            // Guardarlo en blacklist
+            tokenBlacklistRepository.invalidateToken(token);
+
+        } catch (Exception e) {
+            // Si no es un token válido → lanzar excepción
+            throw new RuntimeException("Token inválido");
+        }
     }
 
 

@@ -6,10 +6,7 @@ import com.example.digital_payment_molina.users_service.model.User;
 import com.example.digital_payment_molina.users_service.service.UserService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/users")
@@ -36,5 +33,17 @@ public class UserController {
     public ResponseEntity<?> login(@RequestBody LoginRequestDTO loginRequest) {
         String token = userService.userLogin(loginRequest.getEmail(), loginRequest.getPassword());
         return ResponseEntity.ok(new JwtResponseDTO(token));
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<String> logout(@RequestHeader("Authorization") String token) {
+        try {
+            userService.logout(token);
+            return ResponseEntity.ok("Sesión cerrada correctamente");
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error al cerrar sesión");
+        }
     }
 }
