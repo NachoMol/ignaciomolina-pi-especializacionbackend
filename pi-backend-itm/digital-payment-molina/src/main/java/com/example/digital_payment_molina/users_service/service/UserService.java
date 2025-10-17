@@ -24,12 +24,12 @@ public class UserService {
     private final UserRepository userRepository;
 
     @Autowired
-    private JwtUtil jwtUtil;
+    JwtUtil jwtUtil;
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
     private final List<String> aliasWords;
 
     @Autowired
-    private TokenBlacklistRepository tokenBlacklistRepository;
+    TokenBlacklistRepository tokenBlacklistRepository;
 
 
     public UserService(UserRepository userRepository) throws Exception {
