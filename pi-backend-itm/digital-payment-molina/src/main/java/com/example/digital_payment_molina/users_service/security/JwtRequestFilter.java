@@ -8,11 +8,10 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
-import org.springframework.security.core.context.SecurityContextHolder;
-
 
 import java.io.IOException;
 
@@ -71,6 +70,7 @@ public class JwtRequestFilter extends OncePerRequestFilter {
 
         chain.doFilter(request, response);
     }
+
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getServletPath();
@@ -78,6 +78,11 @@ public class JwtRequestFilter extends OncePerRequestFilter {
                 || path.startsWith("/users/login")
                 || path.startsWith("/api/users/register")
                 || path.startsWith("/api/users/login")
-                || path.startsWith("/h2-console");
+                || path.startsWith("/h2-console")
+                || path.equals("/swagger-ui.html")
+                || path.startsWith("/swagger-ui")
+                || path.startsWith("/v3/api-docs")
+                || path.startsWith("/swagger-resources")
+                || path.startsWith("/webjars");
     }
 }

@@ -10,6 +10,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 
 @Configuration
 public class SecurityConfig {
+
     @Autowired
     private JwtRequestFilter jwtRequestFilter;
 
@@ -21,9 +22,14 @@ public class SecurityConfig {
                         .frameOptions(frame -> frame.disable())
                 )
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/users/register", "/users/login",
+                        .requestMatchers(
+                                "/users/register", "/users/login",
                                 "/api/users/register", "/api/users/login",
-                                "/h2-console/**").permitAll()
+                                "/h2-console/**",
+                                "/swagger-ui.html", "/swagger-ui/**",
+                                "/v3/api-docs/**",
+                                "/swagger-resources/**", "/webjars/**"
+                        ).permitAll()
                         .anyRequest().authenticated()
                 )
                 .exceptionHandling(ex -> ex
