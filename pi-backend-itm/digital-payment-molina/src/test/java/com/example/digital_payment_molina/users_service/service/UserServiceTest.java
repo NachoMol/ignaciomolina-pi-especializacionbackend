@@ -37,7 +37,7 @@ class UserServiceTest {
     }
 
     @Test
-    void deberiaRegistrarUsuarioCorrectamente() {
+    void registerUserShouldReturnTrue() {
         User user = new User();
         user.setEmail("nuevo@test.com");
         user.setPassword("1234");
@@ -52,7 +52,7 @@ class UserServiceTest {
     }
 
     @Test
-    void deberiaFallarSiEmailYaExiste() {
+    void existingEmailShouldReturnFalse() {
         User user = new User();
         user.setEmail("repetido@test.com");
 
@@ -62,7 +62,7 @@ class UserServiceTest {
     }
 
     @Test
-    void deberiaLoguearUsuarioCorrectamente() {
+    void loginUserShouldReturnTrue() {
         User user = new User();
         user.setEmail("nacho@test.com");
         user.setPassword(new org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder().encode("1234"));
@@ -76,7 +76,7 @@ class UserServiceTest {
     }
 
     @Test
-    void deberiaFallarSiUsuarioNoExiste() {
+    void unexistingEmailShouldReturnFalse() {
         when(userRepository.findByEmail("inexistente@test.com")).thenReturn(Optional.empty());
 
         assertThrows(UsuarioNoEncontradoException.class,
@@ -84,7 +84,7 @@ class UserServiceTest {
     }
 
     @Test
-    void deberiaFallarSiPasswordIncorrecta() {
+    void incorrectPasswordShouldReturnFalse() {
         User user = new User();
         user.setEmail("nacho@test.com");
         user.setPassword(new org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder().encode("correcta"));
