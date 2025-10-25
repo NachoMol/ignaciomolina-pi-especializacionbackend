@@ -21,14 +21,14 @@ public class UserController {
     public ResponseEntity<?> registerUser(@RequestBody User user) {
         try {
             UserDTO response = userService.registerUser(user);
-            return ResponseEntity.status(201).body(response);
-        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         } catch (Exception e) {
+            e.printStackTrace();
             return ResponseEntity.internalServerError().body("Error al registrar usuario");
         }
     }
-
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequestDTO loginRequest) {
         String token = userService.userLogin(loginRequest.getEmail(), loginRequest.getPassword());
@@ -46,4 +46,10 @@ public class UserController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error al cerrar sesión");
         }
     }
+
+    @GetMapping
+    public ResponseEntity<?> getAllUsers() {
+        return ResponseEntity.ok(userService.getAllUsers());
+    }
+
 }

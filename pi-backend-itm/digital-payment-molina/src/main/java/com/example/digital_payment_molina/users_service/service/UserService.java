@@ -4,7 +4,9 @@ package com.example.digital_payment_molina.users_service.service;
 import com.example.digital_payment_molina.users_service.dto.UserDTO;
 import com.example.digital_payment_molina.users_service.exceptions.ContrasenaIncorrectaException;
 import com.example.digital_payment_molina.users_service.exceptions.UsuarioNoEncontradoException;
+import com.example.digital_payment_molina.users_service.model.Role;
 import com.example.digital_payment_molina.users_service.model.User;
+import com.example.digital_payment_molina.users_service.repository.RoleRepository;
 import com.example.digital_payment_molina.users_service.repository.TokenBlacklistRepository;
 import com.example.digital_payment_molina.users_service.repository.UserRepository;
 import com.example.digital_payment_molina.users_service.security.JwtUtil;
@@ -22,6 +24,9 @@ public class UserService {
 
     @Autowired
     private final UserRepository userRepository;
+
+    @Autowired
+    private RoleRepository roleRepository;
 
     @Autowired
     JwtUtil jwtUtil;
@@ -53,6 +58,11 @@ public class UserService {
         // Generar CVU y alias
         user.setCvu(Generators.generateCvu());
         user.setAlias(Generators.generateAlias(aliasWords));
+
+        Role userRole = roleRepository.findByName("USER")
+                .orElseThrow(() -> new RuntimeException("Rol USER no encontrado. Asegúrate de inicializar los roles."));
+        user.getRoles().add(userRole);
+
 
         User saved = userRepository.save(user);
 
@@ -95,6 +105,10 @@ public class UserService {
             // Si no es un token válido → lanzar excepción
             throw new RuntimeException("Token inválido");
         }
+    }
+
+    public List<User> getAllUsers() {
+        return userRepository.findAll();
     }
 
 
