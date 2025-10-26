@@ -1,6 +1,7 @@
 version: '3.9'
 
 services:
+  # 🗄️ Base de datos MySQL
   mysql:
     image: mysql:8
     container_name: digital-payment-db
@@ -13,11 +14,21 @@ services:
     volumes:
       - mysql_data:/var/lib/mysql
 
-  backend:
-    build: ./digital-payment-molina
-    container_name: digital-payment-backend
+  # 🌐 Eureka Server
+  eureka-server:
+    build: ./eureka-server
+    container_name: eureka-server
+    ports:
+      - "8761:8761"
+    restart: always
+
+  # 👤 Users Service (tu microservicio principal)
+  users-service:
+    build: ./users-service
+    container_name: users-service
     depends_on:
       - mysql
+      - eureka-server
     ports:
       - "8080:8080"
     environment:
@@ -26,13 +37,10 @@ services:
       SPRING_DATASOURCE_PASSWORD: test
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
       SPRING_JPA_SHOW_SQL: "true"
-      # Opcional: configurar Hikari para reconexión automática si la DB tarda en arrancar
-      SPRING_DATASOURCE_HIKARI_CONNECTION_TIMEOUT: 30000
-      SPRING_DATASOURCE_HIKARI_VALIDATION_TIMEOUT: 5000
-      SPRING_DATASOURCE_HIKARI_IDLE_TIMEOUT: 60000
-      SPRING_DATASOURCE_HIKARI_MAX_LIFETIME: 1800000
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka
+      SPRING_APPLICATION_NAME: users-service
     restart: on-failure
-    command: sh -c "sleep 10 && java -jar app.jar"
+    command: sh -c "sleep 15 && java -jar app.jar"
 
 volumes:
   mysql_data:

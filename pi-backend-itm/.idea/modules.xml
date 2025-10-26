@@ -2,8 +2,8 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/digital-payment-molina/digital-payment-molina.iml" filepath="$PROJECT_DIR$/digital-payment-molina/digital-payment-molina.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/pi-backend-itm.iml" filepath="$PROJECT_DIR$/.idea/pi-backend-itm.iml" />
+      <module fileurl="file://$PROJECT_DIR$/digital-payment-molina/users-service.iml" filepath="$PROJECT_DIR$/digital-payment-molina/users-service.iml" />
     </modules>
   </component>
 </project>
