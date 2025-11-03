@@ -31,11 +31,6 @@ public class User {
 
     private String password; // guardada encriptada
 
-    @Column(unique = true, length = 22)
-    private String cvu;
-
-    @Column(unique = true)
-    private String alias;
 
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(

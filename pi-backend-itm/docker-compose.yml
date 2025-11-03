@@ -13,6 +13,12 @@ services:
       - "3307:3306"
     volumes:
       - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-ptest"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
 
   # 🌐 Eureka Server
   eureka-server:
@@ -22,13 +28,15 @@ services:
       - "8761:8761"
     restart: always
 
-  # 👤 Users Service (tu microservicio principal)
+  # 👤 Users Service
   users-service:
     build: ./users-service
     container_name: users-service
     depends_on:
-      - mysql
-      - eureka-server
+      eureka-server:
+        condition: service_started
+      mysql:
+        condition: service_healthy
     ports:
       - "8080:8080"
     environment:
@@ -40,7 +48,29 @@ services:
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka
       SPRING_APPLICATION_NAME: users-service
     restart: on-failure
-    command: sh -c "sleep 15 && java -jar app.jar"
+    command: sh -c "sleep 10 && java -jar app.jar"
+
+  # 💳 Accounts Service
+  accounts-service:
+    build: ./accounts-service
+    container_name: accounts-service
+    depends_on:
+      eureka-server:
+        condition: service_started
+      mysql:
+        condition: service_healthy
+    ports:
+      - "8082:8082"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/digital_payment_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: test
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SPRING_JPA_SHOW_SQL: "true"
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka
+      SPRING_APPLICATION_NAME: accounts-service
+    restart: on-failure
+    command: sh -c "sleep 10 && java -jar app.jar"
 
 volumes:
   mysql_data:

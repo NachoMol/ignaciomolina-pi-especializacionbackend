@@ -12,6 +12,4 @@ public class UserDTO {
     private String dni;
     private String email;
     private String telefono;
-    private String cvu;
-    private String alias;
 }

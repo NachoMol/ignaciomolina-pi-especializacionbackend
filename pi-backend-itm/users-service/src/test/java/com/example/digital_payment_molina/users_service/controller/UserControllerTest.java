@@ -40,7 +40,7 @@ class UserControllerTest {
 
     @Test
     void registerUserShouldReturnTrue() throws Exception {
-        UserDTO response = new UserDTO(1L, "Nacho Molina", "12345678", "nacho@test.com", "1234", "CVU123", "alias.test");
+        UserDTO response = new UserDTO(1L, "Nacho Molina", "12345678", "nacho@test.com", "1234");
 
         Mockito.when(userService.registerUser(any())).thenReturn(response);
 
