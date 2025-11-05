@@ -11,7 +11,6 @@ import com.example.digital_payment_molina.users_service.repository.RoleRepositor
 import com.example.digital_payment_molina.users_service.repository.TokenBlacklistRepository;
 import com.example.digital_payment_molina.users_service.repository.UserRepository;
 import com.example.digital_payment_molina.users_service.security.JwtUtil;
-import com.example.digital_payment_molina.users_service.utils.Generators;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -35,19 +34,12 @@ public class UserService {
     JwtUtil jwtUtil;
 
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
-    private final List<String> aliasWords;
 
     @Autowired
     TokenBlacklistRepository tokenBlacklistRepository;
 
-    public UserService(UserRepository userRepository) throws Exception {
+    public UserService(UserRepository userRepository) {
         this.userRepository = userRepository;
-        // Cargar alias.txt desde resources
-        try (var inputStream = new ClassPathResource("alias.txt").getInputStream()) {
-            this.aliasWords = new java.io.BufferedReader(new java.io.InputStreamReader(inputStream))
-                    .lines()
-                    .toList();
-        }
     }
 
     public UserDTO registerUser(User user) {

@@ -17,7 +17,7 @@ public class DataInitializer implements CommandLineRunner {
 
     private final RoleRepository roleRepository;
     private final UserRepository userRepository;
-    private final AccountsClient accountsClient; // 👈 inyectamos el Feign Client
+    private final AccountsClient accountsClient;
 
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
@@ -60,7 +60,17 @@ public class DataInitializer implements CommandLineRunner {
             User savedAdmin = userRepository.save(admin);
             System.out.println("✅ Usuario ADMIN creado: " + adminEmail + " / admin123");
 
-            // 🏦 Crear automáticamente su cuenta en accounts-service
+            // 🏦 Crear automáticamente su cuenta en accounts-service (con reintentos)
+            createAdminAccountWithRetry(savedAdmin);
+        }
+    }
+
+    // 🔁 Lógica de reintentos: espera a que accounts-service esté registrado en Eureka
+    private void createAdminAccountWithRetry(User savedAdmin) {
+        int retries = 10;    // número máximo de intentos
+        int delayMs = 5000;  // espera entre intentos
+
+        for (int i = 1; i <= retries; i++) {
             try {
                 AccountDTO account = AccountDTO.builder()
                         .userId(savedAdmin.getId())
@@ -69,9 +79,15 @@ public class DataInitializer implements CommandLineRunner {
 
                 accountsClient.createAccount(account);
                 System.out.println("💳 Cuenta creada para ADMIN (userId=" + savedAdmin.getId() + ")");
+                return;
             } catch (Exception e) {
-                System.err.println("⚠️ No se pudo crear la cuenta del admin: " + e.getMessage());
+                System.err.println("⚠️ Intento " + i + " de crear cuenta falló: " + e.getMessage());
+                try {
+                    Thread.sleep(delayMs);
+                } catch (InterruptedException ignored) {}
             }
         }
+
+        System.err.println("❌ No se pudo crear la cuenta del admin tras varios intentos.");
     }
 }
