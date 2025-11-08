@@ -19,6 +19,8 @@ services:
       timeout: 5s
       retries: 5
       start_period: 20s
+    networks:
+      - digital-payment-network
 
   # 🌐 Eureka Server
   eureka-server:
@@ -27,6 +29,8 @@ services:
     ports:
       - "8761:8761"
     restart: always
+    networks:
+      - digital-payment-network
 
   # 👤 Users Service
   users-service:
@@ -49,6 +53,8 @@ services:
       SPRING_APPLICATION_NAME: users-service
     restart: on-failure
     command: sh -c "sleep 10 && java -jar app.jar"
+    networks:
+      - digital-payment-network
 
   # 💳 Accounts Service
   accounts-service:
@@ -71,6 +77,8 @@ services:
       SPRING_APPLICATION_NAME: accounts-service
     restart: on-failure
     command: sh -c "sleep 10 && java -jar app.jar"
+    networks:
+      - digital-payment-network
 
   # 🚪 API Gateway
   gateway-service:
@@ -85,6 +93,8 @@ services:
       - SERVER_PORT=8080
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka
       - EUREKA_INSTANCE_PREFER_IP_ADDRESS=true
+      - EUREKA_CLIENT_REGISTER_WITH_EUREKA=true
+      - EUREKA_CLIENT_FETCH_REGISTRY=true
       - SPRING_CLOUD_GATEWAY_DISCOVERY_LOCATOR_ENABLED=true
       - SPRING_CLOUD_GATEWAY_DISCOVERY_LOCATOR_LOWER_CASE_SERVICE_ID=true
     networks:
