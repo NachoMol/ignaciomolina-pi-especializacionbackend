@@ -5,14 +5,14 @@ import com.example.digital_payment_molina.users_service.dto.UserDTO;
 import com.example.digital_payment_molina.users_service.exceptions.ContrasenaIncorrectaException;
 import com.example.digital_payment_molina.users_service.exceptions.UsuarioNoEncontradoException;
 import com.example.digital_payment_molina.users_service.feign.AccountsClient;
+import com.example.digital_payment_molina.users_service.feign.AuthClient;
+import com.example.digital_payment_molina.users_service.model.AuthRequest;
+import com.example.digital_payment_molina.users_service.model.AuthResponse;
 import com.example.digital_payment_molina.users_service.model.Role;
 import com.example.digital_payment_molina.users_service.model.User;
 import com.example.digital_payment_molina.users_service.repository.RoleRepository;
-import com.example.digital_payment_molina.users_service.repository.TokenBlacklistRepository;
 import com.example.digital_payment_molina.users_service.repository.UserRepository;
-import com.example.digital_payment_molina.users_service.security.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.io.ClassPathResource;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -21,25 +21,22 @@ import java.util.List;
 @Service
 public class UserService {
 
-    @Autowired
     private final UserRepository userRepository;
-
-    @Autowired
-    private RoleRepository roleRepository;
-
-    @Autowired
-    private AccountsClient accountsClient;
-
-    @Autowired
-    JwtUtil jwtUtil;
+    private final RoleRepository roleRepository;
+    private final AccountsClient accountsClient;
+    private final AuthClient authClient;
 
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
     @Autowired
-    TokenBlacklistRepository tokenBlacklistRepository;
-
-    public UserService(UserRepository userRepository) {
+    public UserService(UserRepository userRepository,
+                       RoleRepository roleRepository,
+                       AccountsClient accountsClient,
+                       AuthClient authClient) {
         this.userRepository = userRepository;
+        this.roleRepository = roleRepository;
+        this.accountsClient = accountsClient;
+        this.authClient = authClient;
     }
 
     public UserDTO registerUser(User user) {
@@ -47,18 +44,15 @@ public class UserService {
             throw new RuntimeException("Email ya registrado");
         }
 
-        // Encriptar contraseña
         user.setPassword(passwordEncoder.encode(user.getPassword()));
 
-        // Asignar rol USER por defecto
         Role userRole = roleRepository.findByName("USER")
                 .orElseThrow(() -> new RuntimeException("Rol USER no encontrado. Asegúrate de inicializar los roles."));
         user.getRoles().add(userRole);
 
-        // Guardar usuario en la base de datos
         User saved = userRepository.save(user);
 
-        // ✅ Crear cuenta automáticamente en accounts-service
+        // Crear cuenta en accounts-service
         AccountDTO account = AccountDTO.builder()
                 .userId(saved.getId())
                 .saldoDisponible(0.0)
@@ -66,12 +60,11 @@ public class UserService {
 
         try {
             accountsClient.createAccount(account);
-            System.out.println("✅ Cuenta creada en accounts-service para el usuario: " + saved.getEmail());
+            System.out.println("✅ Cuenta creada para el usuario: " + saved.getEmail());
         } catch (Exception e) {
-            System.err.println("⚠️ Error al crear cuenta en accounts-service: " + e.getMessage());
+            System.err.println("⚠️ Error al crear cuenta: " + e.getMessage());
         }
 
-        // Retornar respuesta final
         return new UserDTO(
                 saved.getId(),
                 saved.getNyap(),
@@ -81,7 +74,7 @@ public class UserService {
         );
     }
 
-    public String userLogin(String email, String rawPassword) {
+    public AuthResponse userLogin(String email, String rawPassword) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UsuarioNoEncontradoException("Usuario (email) inexistente"));
 
@@ -89,19 +82,16 @@ public class UserService {
             throw new ContrasenaIncorrectaException("Email o contraseña incorrectos");
         }
 
-        return jwtUtil.generateToken(email);
+        // ✅ Delegar autenticación al Auth-Service
+        AuthRequest request = new AuthRequest(email, rawPassword);
+        return authClient.login(request);
     }
 
     public void logout(String token) {
-        if (token.startsWith("Bearer ")) {
-            token = token.substring(7);
-        }
         try {
-            String email = jwtUtil.extractEmail(token);
-            System.out.println("Logout de usuario: " + email);
-            tokenBlacklistRepository.invalidateToken(token);
+            authClient.logout(token);
         } catch (Exception e) {
-            throw new RuntimeException("Token inválido");
+            throw new RuntimeException("Error al cerrar sesión: " + e.getMessage());
         }
     }
 

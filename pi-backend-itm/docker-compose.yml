@@ -100,6 +100,27 @@ services:
     networks:
       - digital-payment-network
 
+  # 🔐 Auth Service
+  auth-service:
+    build: ./auth-service
+    container_name: auth-service
+    depends_on:
+      eureka-server:
+        condition: service_started
+    ports:
+      - "8083:8083"
+    environment:
+      - SPRING_APPLICATION_NAME=auth-service
+      - SERVER_PORT=8083
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka
+      - EUREKA_INSTANCE_PREFER_IP_ADDRESS=true
+      - JWT_SECRET=mySecretKey12345
+      - JWT_EXPIRATION=3600000
+    restart: on-failure
+    command: sh -c "sleep 10 && java -jar app.jar"
+    networks:
+      - digital-payment-network
+
 networks:
   digital-payment-network:
     driver: bridge
