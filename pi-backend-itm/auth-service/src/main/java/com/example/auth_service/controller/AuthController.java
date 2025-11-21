@@ -19,6 +19,12 @@ public class AuthController {
         return ResponseEntity.ok(authService.login(request));
     }
 
+    @PostMapping("/logout")
+    public ResponseEntity<String> logout(@RequestHeader("Authorization") String token) {
+        authService.logout(token);
+        return ResponseEntity.ok("Sesión cerrada correctamente");
+    }
+
     @GetMapping("/validate")
     public ResponseEntity<Boolean> validate(@RequestHeader("Authorization") String token) {
         boolean isValid = authService.validate(token.replace("Bearer ", ""));

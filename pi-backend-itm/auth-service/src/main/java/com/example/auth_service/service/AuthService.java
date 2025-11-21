@@ -38,22 +38,28 @@ public class AuthService {
         }
     }
 
+    public void logout(String token) {
+
+        if (token == null || token.isBlank()) {
+            throw new RuntimeException("Token vacío o no proporcionado");
+        }
+
+        // Aceptar Authorization: Bearer X o solo X
+        token = token.replace("Bearer ", "").trim();
+
+        // 🔍 Validar token
+        if (!jwtUtil.validateToken(token)) {
+            throw new RuntimeException("Token inválido o expirado");
+        }
+
+        // 🗑️ Guardar en blacklist
+        tokenBlacklistRepository.invalidateToken(token);
+    }
+
     public boolean validate(String token) {
         if (!tokenBlacklistRepository.isTokenValid(token)) {
             return false;
         }
         return jwtUtil.validateToken(token);
     }
-
-    public void logout(String token) {
-        if (token == null || token.isBlank()) {
-            throw new RuntimeException("Token no proporcionado");
-        }
-
-        // Acepta Authorization: Bearer X o solo X
-        token = token.replace("Bearer ", "").trim();
-
-        tokenBlacklistRepository.invalidateToken(token);
-    }
-
 }
