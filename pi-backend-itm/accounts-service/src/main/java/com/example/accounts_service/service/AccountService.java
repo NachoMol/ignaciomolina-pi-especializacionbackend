@@ -17,7 +17,17 @@ public class AccountService {
         this.accountRepository = accountRepository;
     }
 
-    // 🔹 Nuevo método: creación desde DTO (para llamadas desde users-service)
+    // ⭐ NUEVO - Método que usan users-service y tus tests
+    public AccountDTO createAccount(AccountDTO dto) {
+        Account saved = createAccountFromDTO(dto);
+
+        return AccountDTO.builder()
+                .userId(saved.getUserId())
+                .saldoDisponible(saved.getSaldoDisponible())
+                .build();
+    }
+
+    // 🔹 Interno: creación desde DTO con alias/cvu generados
     public Account createAccountFromDTO(AccountDTO dto) {
         Account account = Account.builder()
                 .userId(dto.getUserId())
@@ -29,9 +39,8 @@ public class AccountService {
         return accountRepository.save(account);
     }
 
-    // 🔹 Método manual (por si se crea desde Swagger, por ejemplo)
+    // 🔹 Creación manual desde Swagger
     public Account createAccount(Account account) {
-        // Si no viene alias o cvu, los genera también
         if (account.getAlias() == null || account.getAlias().isBlank()) {
             account.setAlias(Generators.generateAlias());
         }

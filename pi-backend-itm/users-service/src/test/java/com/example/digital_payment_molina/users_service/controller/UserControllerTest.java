@@ -1,9 +1,7 @@
 package com.example.digital_payment_molina.users_service.controller;
 
 import com.example.digital_payment_molina.users_service.dto.UserDTO;
-import com.example.digital_payment_molina.users_service.dto.LoginRequestDTO;
-import com.example.digital_payment_molina.users_service.repository.TokenBlacklistRepository;
-import com.example.digital_payment_molina.users_service.security.JwtUtil;
+import com.example.digital_payment_molina.users_service.model.AuthResponse;
 import com.example.digital_payment_molina.users_service.service.UserService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
@@ -30,41 +28,43 @@ class UserControllerTest {
     @MockBean
     private UserService userService;
 
-    @MockBean
-    private JwtUtil jwtUtil;
-
-    @MockBean
-    private TokenBlacklistRepository tokenBlacklistRepository;
-
     private final ObjectMapper mapper = new ObjectMapper();
 
+    // ✅ Test de registro
     @Test
-    void registerUserShouldReturnTrue() throws Exception {
+    void registerUserShouldReturnCreated() throws Exception {
         UserDTO response = new UserDTO(1L, "Nacho Molina", "12345678", "nacho@test.com", "1234");
 
         Mockito.when(userService.registerUser(any())).thenReturn(response);
 
         mockMvc.perform(post("/api/users/register")
-                        .with(csrf())  // 👈 agrega token CSRF válido
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"email\":\"nacho@test.com\",\"password\":\"1234\"}"))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.email").value("nacho@test.com"));
     }
 
+    // ✅ Test de login correcto (usando AuthResponse ahora)
     @Test
-    void loginUserShouldReturnTrue() throws Exception {
-        Mockito.when(userService.userLogin("nacho@test.com", "1234")).thenReturn("fake-jwt");
+    void loginUserShouldReturnAuthResponse() throws Exception {
+        AuthResponse fakeResponse = new AuthResponse("fake-jwt-token");
 
-        LoginRequestDTO request = new LoginRequestDTO();
-        request.setEmail("nacho@test.com");
-        request.setPassword("1234");
+        Mockito.when(userService.userLogin("nacho@test.com", "1234"))
+                .thenReturn(fakeResponse);
+
+        String body = """
+                {
+                    "email": "nacho@test.com",
+                    "password": "1234"
+                }
+                """;
 
         mockMvc.perform(post("/api/users/login")
-                        .with(csrf())  // 👈 también acá
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(mapper.writeValueAsString(request)))
+                        .content(body))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.token").value("fake-jwt"));
+                .andExpect(jsonPath("$.token").value("fake-jwt-token"));
     }
 }

@@ -114,7 +114,7 @@ services:
       - SERVER_PORT=8083
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka
       - EUREKA_INSTANCE_PREFER_IP_ADDRESS=true
-      - JWT_SECRET=mySecretKey12345
+      - JWT_SECRET=jS9fT2rA7gH4nK8pQ2wE1zM6bC3vF9dX
       - JWT_EXPIRATION=3600000
     restart: on-failure
     command: sh -c "sleep 10 && java -jar app.jar"

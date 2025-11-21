@@ -98,4 +98,10 @@ public class UserService {
     public List<User> getAllUsers() {
         return userRepository.findAll();
     }
+
+    public boolean validateCredentials(String email, String rawPassword) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UsuarioNoEncontradoException("Usuario no encontrado"));
+        return passwordEncoder.matches(rawPassword, user.getPassword());
+    }
 }

@@ -1,10 +1,25 @@
-FROM eclipse-temurin:21-jdk AS build
-WORKDIR /app
-COPY . .
-RUN ./mvnw clean package -DskipTests
+# Etapa 1: Construcción con Maven
+FROM maven:3.9-eclipse-temurin-21-alpine AS build
 
-FROM eclipse-temurin:21-jdk
 WORKDIR /app
-COPY --from=build /app/target/gateway-service-0.0.1-SNAPSHOT.jar app.jar
+
+# Copiar archivos de Maven
+COPY pom.xml .
+COPY src ./src
+
+# Compilar y empaquetar la aplicación (sin tests)
+RUN mvn clean package -DskipTests
+
+# Etapa 2: Runtime
+FROM eclipse-temurin:21-jdk-alpine
+
+WORKDIR /app
+
+# Copiar el JAR desde la etapa de construcción
+COPY --from=build /app/target/*.jar app.jar
+
+# Exponer el puerto del Gateway
 EXPOSE 8080
-ENTRYPOINT ["java", "-jar", "app.jar"]
+
+# Comando de arranque
+CMD ["java", "-jar", "app.jar"]

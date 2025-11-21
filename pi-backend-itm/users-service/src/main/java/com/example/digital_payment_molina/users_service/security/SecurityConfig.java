@@ -14,10 +14,11 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .headers(headers -> headers.frameOptions(frame -> frame.disable()))
                 .authorizeHttpRequests(auth -> auth
-                        // Endpoints públicos (para pruebas locales)
+                        // Endpoints públicos (para pruebas locales y Auth-Service)
                         .requestMatchers(
                                 "/api/users/register",
                                 "/api/users/login",
+                                "/api/users/validate-credentials",
                                 "/h2-console/**",
                                 "/swagger-ui.html",
                                 "/swagger-ui/**",

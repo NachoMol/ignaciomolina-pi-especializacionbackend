@@ -1,15 +1,13 @@
-package com.example.digital_payment_molina.users_service.dto;
+package com.example.digital_payment_molina.users_service.model;
 
 import lombok.AllArgsConstructor;
-import lombok.Getter;
+import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 
-@Getter
-@Setter
+@Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class LoginRequestDTO {
+public class AuthRequest {
     private String email;
     private String password;
 }

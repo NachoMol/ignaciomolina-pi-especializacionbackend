@@ -1,7 +1,7 @@
 package com.example.digital_payment_molina.users_service.controller;
-import com.example.digital_payment_molina.users_service.dto.JwtResponseDTO;
-import com.example.digital_payment_molina.users_service.dto.LoginRequestDTO;
+
 import com.example.digital_payment_molina.users_service.dto.UserDTO;
+import com.example.digital_payment_molina.users_service.model.AuthResponse;
 import com.example.digital_payment_molina.users_service.model.User;
 import com.example.digital_payment_molina.users_service.service.UserService;
 import org.springframework.http.HttpStatus;
@@ -11,12 +11,14 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/users")
 public class UserController {
+
     private final UserService userService;
 
     public UserController(UserService userService) {
         this.userService = userService;
     }
 
+    // ✅ Registro de usuario
     @PostMapping("/register")
     public ResponseEntity<?> registerUser(@RequestBody User user) {
         try {
@@ -29,12 +31,21 @@ public class UserController {
             return ResponseEntity.internalServerError().body("Error al registrar usuario");
         }
     }
+
+    // ✅ Login (ahora delega al Auth-Service)
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody LoginRequestDTO loginRequest) {
-        String token = userService.userLogin(loginRequest.getEmail(), loginRequest.getPassword());
-        return ResponseEntity.ok(new JwtResponseDTO(token));
+    public ResponseEntity<?> login(@RequestBody User loginRequest) {
+        try {
+            AuthResponse authResponse = userService.userLogin(loginRequest.getEmail(), loginRequest.getPassword());
+            return ResponseEntity.ok(authResponse);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body("Error al iniciar sesión");
+        }
     }
 
+    // ✅ Logout (también delegado al Auth-Service)
     @PostMapping("/logout")
     public ResponseEntity<String> logout(@RequestHeader("Authorization") String token) {
         try {
@@ -47,9 +58,22 @@ public class UserController {
         }
     }
 
+    // ✅ Obtener todos los usuarios (protegido por Gateway)
     @GetMapping
     public ResponseEntity<?> getAllUsers() {
         return ResponseEntity.ok(userService.getAllUsers());
+    }
+
+    @GetMapping("/validate-credentials")
+    public ResponseEntity<Boolean> validateCredentials(
+            @RequestParam String email,
+            @RequestParam String password) {
+        try {
+            boolean valid = userService.validateCredentials(email, password);
+            return ResponseEntity.ok(valid);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(false);
+        }
     }
 
 }

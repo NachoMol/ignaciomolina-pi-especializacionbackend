@@ -7,7 +7,7 @@ WORKDIR /app
 COPY pom.xml .
 COPY src ./src
 
-# Compilar y empaquetar la aplicación (sin tests)
+# Compilar y empaquetar la aplicación
 RUN mvn clean package -DskipTests
 
 # Etapa 2: Runtime
