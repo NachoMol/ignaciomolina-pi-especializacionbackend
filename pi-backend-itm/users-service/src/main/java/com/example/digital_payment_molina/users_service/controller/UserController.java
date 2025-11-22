@@ -1,9 +1,12 @@
 package com.example.digital_payment_molina.users_service.controller;
 
+import com.example.digital_payment_molina.users_service.dto.LoginRequestDTO;
+import com.example.digital_payment_molina.users_service.dto.RegisterRequestDTO;
 import com.example.digital_payment_molina.users_service.dto.UserDTO;
 import com.example.digital_payment_molina.users_service.model.AuthResponse;
 import com.example.digital_payment_molina.users_service.model.User;
 import com.example.digital_payment_molina.users_service.service.UserService;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -20,30 +23,31 @@ public class UserController {
 
     // ✅ Registro de usuario
     @PostMapping("/register")
-    public ResponseEntity<?> registerUser(@RequestBody User user) {
+    public ResponseEntity<?> registerUser(@Valid @RequestBody RegisterRequestDTO request) {
         try {
-            UserDTO response = userService.registerUser(user);
+            UserDTO response = userService.registerUser(request);
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
-        } catch (RuntimeException e) {
+        } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.internalServerError().body("Error al registrar usuario");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error interno del servidor");
         }
     }
 
     // ✅ Login (ahora delega al Auth-Service)
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody User loginRequest) {
+    public ResponseEntity<?> login(@Valid @RequestBody LoginRequestDTO request) {
         try {
-            AuthResponse authResponse = userService.userLogin(loginRequest.getEmail(), loginRequest.getPassword());
-            return ResponseEntity.ok(authResponse);
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(e.getMessage());
+            AuthResponse token = userService.userLogin(request.getEmail(), request.getPassword());
+            return ResponseEntity.ok(token);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
         } catch (Exception e) {
-            return ResponseEntity.internalServerError().body("Error al iniciar sesión");
+            return ResponseEntity.internalServerError().body("Error interno del servidor");
         }
     }
+
 
     // ✅ Logout (también delegado al Auth-Service)
     @PostMapping("/logout")

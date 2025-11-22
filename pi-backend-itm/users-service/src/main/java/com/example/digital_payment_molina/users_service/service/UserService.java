@@ -1,6 +1,7 @@
 package com.example.digital_payment_molina.users_service.service;
 
 import com.example.digital_payment_molina.users_service.dto.AccountDTO;
+import com.example.digital_payment_molina.users_service.dto.RegisterRequestDTO;
 import com.example.digital_payment_molina.users_service.dto.UserDTO;
 import com.example.digital_payment_molina.users_service.exceptions.ContrasenaIncorrectaException;
 import com.example.digital_payment_molina.users_service.exceptions.UsuarioNoEncontradoException;
@@ -39,17 +40,32 @@ public class UserService {
         this.authClient = authClient;
     }
 
-    public UserDTO registerUser(User user) {
-        if (userRepository.existsByEmail(user.getEmail())) {
-            throw new RuntimeException("Email ya registrado");
+    public UserDTO registerUser(RegisterRequestDTO request) {
+
+        // Validación de email duplicado
+        if (userRepository.existsByEmail(request.getEmail())) {
+            throw new IllegalArgumentException("El email ya está registrado");
         }
 
-        user.setPassword(passwordEncoder.encode(user.getPassword()));
+        // Construcción del usuario
+        User user = new User();
+        user.setNyap(
+                request.getNyap()
+                        .trim()
+                        .replace(" ", ".")
+                        .toLowerCase()
+        );
+        user.setDni(request.getDni());
+        user.setEmail(request.getEmail());
+        user.setTelefono(request.getTelefono());
+        user.setPassword(passwordEncoder.encode(request.getPassword()));
 
+        // Rol USER
         Role userRole = roleRepository.findByName("USER")
-                .orElseThrow(() -> new RuntimeException("Rol USER no encontrado. Asegúrate de inicializar los roles."));
+                .orElseThrow(() -> new RuntimeException("Rol USER no encontrado"));
         user.getRoles().add(userRole);
 
+        // Guardar usuario
         User saved = userRepository.save(user);
 
         // Crear cuenta en accounts-service
@@ -60,11 +76,11 @@ public class UserService {
 
         try {
             accountsClient.createAccount(account);
-            System.out.println("✅ Cuenta creada para el usuario: " + saved.getEmail());
         } catch (Exception e) {
             System.err.println("⚠️ Error al crear cuenta: " + e.getMessage());
         }
 
+        // Retorno final
         return new UserDTO(
                 saved.getId(),
                 saved.getNyap(),
@@ -74,18 +90,32 @@ public class UserService {
         );
     }
 
+
     public AuthResponse userLogin(String email, String rawPassword) {
+
+        // 🔒 Validaciones mínimas de seguridad
+        if (email == null || email.isBlank()) {
+            throw new IllegalArgumentException("El email es obligatorio");
+        }
+
+        if (rawPassword == null || rawPassword.isBlank()) {
+            throw new IllegalArgumentException("La contraseña es obligatoria");
+        }
+
+        // 🔍 Verificar si existe el usuario
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UsuarioNoEncontradoException("Usuario (email) inexistente"));
 
+        // 🔑 Validar contraseña
         if (!passwordEncoder.matches(rawPassword, user.getPassword())) {
             throw new ContrasenaIncorrectaException("Email o contraseña incorrectos");
         }
 
-        // ✅ Delegar autenticación al Auth-Service
+        // 🔐 Delegar autenticación real al Auth-Service
         AuthRequest request = new AuthRequest(email, rawPassword);
         return authClient.login(request);
     }
+
 
     public void logout(String token) {
         try {

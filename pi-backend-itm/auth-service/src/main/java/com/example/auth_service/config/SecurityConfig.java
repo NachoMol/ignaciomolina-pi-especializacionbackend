@@ -14,13 +14,21 @@ public class SecurityConfig {
         return http
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-                        // PERMITIR POST /login
+                        // Endpoints públicos de auth-service
                         .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
-                        // PERMITIR GET /validate
                         .requestMatchers(HttpMethod.GET, "/api/auth/validate").permitAll()
-                        // PERMITIR TODO LO DEMÁS EN api/auth/
                         .requestMatchers("/api/auth/**").permitAll()
-                        // TODO LO DEMÁS REQUIERE TOKEN
+
+                        // ⚠️ IMPORTANTE: permitir Swagger
+                        .requestMatchers(
+                                "/swagger-ui.html",
+                                "/swagger-ui/**",
+                                "/v3/api-docs/**",
+                                "/swagger-resources/**",
+                                "/webjars/**"
+                        ).permitAll()
+
+                        // Todo lo demás requiere autenticación
                         .anyRequest().authenticated()
                 )
                 .build();

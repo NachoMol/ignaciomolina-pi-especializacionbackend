@@ -17,10 +17,10 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @NotBlank
+
     private String nyap;
 
-    @NotBlank
+
     private String dni;
 
     @Email

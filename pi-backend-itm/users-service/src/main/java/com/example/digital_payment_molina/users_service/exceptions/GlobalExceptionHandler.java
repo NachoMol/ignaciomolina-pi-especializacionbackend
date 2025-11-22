@@ -35,4 +35,24 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(error, status);
     }
 
+    @ExceptionHandler(org.springframework.web.bind.MethodArgumentNotValidException.class)
+    public ResponseEntity<Map<String, Object>> handleValidationErrors(
+            org.springframework.web.bind.MethodArgumentNotValidException ex) {
+
+        Map<String, Object> error = new HashMap<>();
+        Map<String, String> fieldErrors = new HashMap<>();
+
+        ex.getBindingResult().getFieldErrors().forEach(err ->
+                fieldErrors.put(err.getField(), err.getDefaultMessage())
+        );
+
+        error.put("timestamp", LocalDateTime.now());
+        error.put("status", HttpStatus.BAD_REQUEST.value());
+        error.put("error", "Validación fallida");
+        error.put("details", fieldErrors);
+
+        return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
+    }
+
+
 }
