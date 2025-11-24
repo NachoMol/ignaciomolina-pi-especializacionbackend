@@ -10,25 +10,17 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        return http
+        http
                 .csrf(csrf -> csrf.disable())
                 .headers(headers -> headers.frameOptions(frame -> frame.disable()))
                 .authorizeHttpRequests(auth -> auth
-                        // Endpoints públicos (para pruebas locales y Auth-Service)
-                        .requestMatchers(
-                                "/api/users/register",
-                                "/api/users/login",
-                                "/api/users/validate-credentials",
-                                "/h2-console/**",
-                                "/swagger-ui.html",
-                                "/swagger-ui/**",
-                                "/v3/api-docs/**",
-                                "/swagger-resources/**",
-                                "/webjars/**"
-                        ).permitAll()
-                        // El resto, autenticado (ya filtrado por Gateway)
-                        .anyRequest().authenticated()
+                        // Todo permitido (la autenticación la hace el Gateway)
+                        .anyRequest().permitAll()
                 )
-                .build();
+                .formLogin(form -> form.disable())
+                .httpBasic(basic -> basic.disable())
+                .sessionManagement(session -> session.disable());
+
+        return http.build();
     }
 }

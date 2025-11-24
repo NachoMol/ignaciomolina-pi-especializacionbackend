@@ -7,6 +7,7 @@ import com.example.accounts_service.utils.Generators;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class AccountService {
@@ -58,6 +59,43 @@ public class AccountService {
         return accountRepository.findByUserId(userId)
                 .orElseThrow(() -> new RuntimeException("Cuenta no encontrada para el usuario: " + userId));
     }
+
+    public AccountDTO getAccountById(Long id) {
+        Account acc = accountRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Cuenta no encontrada: " + id));
+
+        return AccountDTO.builder()
+                .id(acc.getId())
+                .userId(acc.getUserId())
+                .cvu(acc.getCvu())
+                .alias(acc.getAlias())
+                .saldoDisponible(acc.getSaldoDisponible())
+                .build();
+    }
+
+    public AccountDTO updateAccount(Long id, Map<String, Object> updates) {
+
+        Account acc = accountRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Cuenta no encontrada: " + id));
+
+        if (updates.containsKey("alias")) {
+            acc.setAlias(updates.get("alias").toString());
+        }
+
+        Account saved = accountRepository.save(acc);
+
+        return AccountDTO.builder()
+                .id(saved.getId())
+                .userId(saved.getUserId())
+                .cvu(saved.getCvu())
+                .alias(saved.getAlias())
+                .saldoDisponible(saved.getSaldoDisponible())
+                .build();
+    }
+
+
+
+
 
     public List<Account> findAll() {
         return accountRepository.findAll();

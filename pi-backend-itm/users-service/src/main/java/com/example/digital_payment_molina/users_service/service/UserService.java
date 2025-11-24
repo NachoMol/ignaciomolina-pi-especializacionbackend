@@ -3,6 +3,7 @@ package com.example.digital_payment_molina.users_service.service;
 import com.example.digital_payment_molina.users_service.dto.AccountDTO;
 import com.example.digital_payment_molina.users_service.dto.RegisterRequestDTO;
 import com.example.digital_payment_molina.users_service.dto.UserDTO;
+import com.example.digital_payment_molina.users_service.dto.UserProfileDTO;
 import com.example.digital_payment_molina.users_service.exceptions.ContrasenaIncorrectaException;
 import com.example.digital_payment_molina.users_service.exceptions.UsuarioNoEncontradoException;
 import com.example.digital_payment_molina.users_service.feign.AccountsClient;
@@ -18,6 +19,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class UserService {
@@ -134,4 +136,67 @@ public class UserService {
                 .orElseThrow(() -> new UsuarioNoEncontradoException("Usuario no encontrado"));
         return passwordEncoder.matches(rawPassword, user.getPassword());
     }
+
+    public UserProfileDTO getUserProfile(Long id) {
+
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new UsuarioNoEncontradoException("Usuario no encontrado con id " + id));
+
+        // Llamar a accounts-service
+        AccountDTO account = accountsClient.getAccountByUserId(id);
+
+        // Construir perfil final
+        return new UserProfileDTO(
+                user.getId(),
+                user.getNyap(),
+                user.getDni(),
+                user.getEmail(),
+                user.getTelefono(),
+                account.getCvu(),
+                account.getAlias(),
+                account.getSaldoDisponible()
+        );
+    }
+
+    public UserDTO getUserById(Long id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new UsuarioNoEncontradoException("Usuario no encontrado: " + id));
+
+        return new UserDTO(
+                user.getId(),
+                user.getNyap(),
+                user.getDni(),
+                user.getEmail(),
+                user.getTelefono()
+        );
+    }
+
+    public UserDTO updateUser(Long id, Map<String, Object> updates) {
+
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new UsuarioNoEncontradoException("Usuario no encontrado: " + id));
+
+        if (updates.containsKey("nyap")) {
+            user.setNyap(updates.get("nyap").toString());
+        }
+        if (updates.containsKey("email")) {
+            user.setEmail(updates.get("email").toString());
+        }
+        if (updates.containsKey("telefono")) {
+            user.setTelefono(updates.get("telefono").toString());
+        }
+
+        User saved = userRepository.save(user);
+
+        return new UserDTO(
+                saved.getId(),
+                saved.getNyap(),
+                saved.getDni(),
+                saved.getEmail(),
+                saved.getTelefono()
+        );
+    }
+
+
+
 }

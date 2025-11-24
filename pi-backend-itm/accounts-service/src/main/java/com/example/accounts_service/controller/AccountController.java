@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/accounts")
@@ -31,6 +32,28 @@ public class AccountController {
     public ResponseEntity<Account> getAccountByUser(@PathVariable Long userId) {
         return ResponseEntity.ok(accountService.getByUserId(userId));
     }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<?> getAccountById(@PathVariable Long id) {
+        try {
+            return ResponseEntity.ok(accountService.getAccountById(id));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        }
+    }
+
+    @PatchMapping("/{id}")
+    public ResponseEntity<?> updateAccount(
+            @PathVariable Long id,
+            @RequestBody Map<String, Object> updates) {
+
+        try {
+            return ResponseEntity.ok(accountService.updateAccount(id, updates));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        }
+    }
+
 
     @GetMapping
     public ResponseEntity<List<Account>> getAll() {

@@ -3,13 +3,16 @@ package com.example.digital_payment_molina.users_service.controller;
 import com.example.digital_payment_molina.users_service.dto.LoginRequestDTO;
 import com.example.digital_payment_molina.users_service.dto.RegisterRequestDTO;
 import com.example.digital_payment_molina.users_service.dto.UserDTO;
+import com.example.digital_payment_molina.users_service.dto.UserProfileDTO;
+import com.example.digital_payment_molina.users_service.exceptions.UsuarioNoEncontradoException;
 import com.example.digital_payment_molina.users_service.model.AuthResponse;
-import com.example.digital_payment_molina.users_service.model.User;
 import com.example.digital_payment_molina.users_service.service.UserService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/users")
@@ -21,7 +24,11 @@ public class UserController {
         this.userService = userService;
     }
 
-    // ✅ Registro de usuario
+    // ================================
+    // AUTH
+    // ================================
+
+    // Registro
     @PostMapping("/register")
     public ResponseEntity<?> registerUser(@Valid @RequestBody RegisterRequestDTO request) {
         try {
@@ -35,7 +42,7 @@ public class UserController {
         }
     }
 
-    // ✅ Login (ahora delega al Auth-Service)
+    // Login
     @PostMapping("/login")
     public ResponseEntity<?> login(@Valid @RequestBody LoginRequestDTO request) {
         try {
@@ -48,8 +55,7 @@ public class UserController {
         }
     }
 
-
-    // ✅ Logout (también delegado al Auth-Service)
+    // Logout
     @PostMapping("/logout")
     public ResponseEntity<String> logout(@RequestHeader("Authorization") String token) {
         try {
@@ -58,16 +64,51 @@ public class UserController {
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(e.getMessage());
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error al cerrar sesión");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error al cerrar sesión");
         }
     }
 
-    // ✅ Obtener todos los usuarios (protegido por Gateway)
+    // ================================
+    // USER CRUD
+    // ================================
+
+    // GET all users
     @GetMapping
     public ResponseEntity<?> getAllUsers() {
         return ResponseEntity.ok(userService.getAllUsers());
     }
 
+    // GET user by ID (API oficial Sprint 2)
+    @GetMapping("/{id}")
+    public ResponseEntity<?> getUserById(@PathVariable Long id) {
+        try {
+            UserDTO user = userService.getUserById(id);
+            return ResponseEntity.ok(user);
+        } catch (UsuarioNoEncontradoException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        }
+    }
+
+    // PATCH user
+    @PatchMapping("/{id}")
+    public ResponseEntity<?> updateUser(
+            @PathVariable Long id,
+            @RequestBody Map<String, Object> updates) {
+
+        try {
+            UserDTO updated = userService.updateUser(id, updates);
+            return ResponseEntity.ok(updated);
+        } catch (UsuarioNoEncontradoException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error al actualizar usuario");
+        }
+    }
+
+    // ================================
+    // VALIDATE CREDENTIALS (Auth-Service internal)
+    // ================================
     @GetMapping("/validate-credentials")
     public ResponseEntity<Boolean> validateCredentials(
             @RequestParam String email,
@@ -80,4 +121,18 @@ public class UserController {
         }
     }
 
+    // ================================
+    // PROFILE (Opción B)
+    // ================================
+    @GetMapping("/{id}/profile")
+    public ResponseEntity<?> getUserProfile(@PathVariable Long id) {
+        try {
+            UserProfileDTO profile = userService.getUserProfile(id);
+            return ResponseEntity.ok(profile);
+        } catch (UsuarioNoEncontradoException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body("Error al obtener perfil");
+        }
+    }
 }

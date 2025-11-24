@@ -20,24 +20,19 @@ public class JwtAuthFilter implements GlobalFilter {
     public Mono<Void> filter(ServerWebExchange exchange,
                              org.springframework.cloud.gateway.filter.GatewayFilterChain chain) {
 
-        String rawPath = exchange.getRequest().getPath().value();
-        System.out.println(">>> PATH RECIBIDO POR EL GATEWAY = " + rawPath);
+        String path = exchange.getRequest().getPath().value();
+        System.out.println(">>> PATH RECIBIDO POR EL GATEWAY = " + path);
 
-        String path = rawPath;
-
-        // WHITELIST real
+        // ============================================================
+        // WHITELIST
+        // ============================================================
         if (
-            // auth-service
                 path.startsWith("/api/auth/")
                         || path.startsWith("/auth-service/api/auth/")
-
-                        // users-service
                         || path.startsWith("/api/users/register")
                         || path.startsWith("/api/users/validate-credentials")
                         || path.startsWith("/users-service/api/users/register")
                         || path.startsWith("/users-service/api/users/validate-credentials")
-
-                        // swagger
                         || path.startsWith("/swagger")
                         || path.startsWith("/swagger-ui")
                         || path.startsWith("/v3/api-docs")
@@ -46,7 +41,10 @@ public class JwtAuthFilter implements GlobalFilter {
             return chain.filter(exchange);
         }
 
-        // Rutas protegidas
+        // ============================================================
+        // VALIDACIÓN JWT
+        // ============================================================
+
         String authHeader = exchange.getRequest().getHeaders().getFirst("Authorization");
 
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
@@ -54,13 +52,19 @@ public class JwtAuthFilter implements GlobalFilter {
             return exchange.getResponse().setComplete();
         }
 
-        boolean isValid = authWebClient.validate(authHeader);
-        if (!isValid) {
-            exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
-            return exchange.getResponse().setComplete();
-        }
-        System.out.println("PATH REAL = " + exchange.getRequest().getPath().value());
-        return chain.filter(exchange);
-    }
+        // Validación reactiva SIN block()
+        return authWebClient.validate(authHeader)
+                .flatMap(isValid -> {
 
+                    System.out.println(">>> TOKEN VALID? = " + isValid);
+
+                    if (!isValid) {
+                        exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
+                        return exchange.getResponse().setComplete();
+                    }
+
+                    // Token válido → continuar
+                    return chain.filter(exchange);
+                });
+    }
 }
