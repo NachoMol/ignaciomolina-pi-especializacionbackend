@@ -13,9 +13,12 @@ import java.util.Map;
 public class AccountService {
 
     private final AccountRepository accountRepository;
+    private final TransactionService transactionService;
 
-    public AccountService(AccountRepository accountRepository) {
+    public AccountService(AccountRepository accountRepository,
+                          TransactionService transactionService) {
         this.accountRepository = accountRepository;
+        this.transactionService = transactionService;
     }
 
     // ⭐ NUEVO - Método que usan users-service y tus tests
@@ -23,13 +26,17 @@ public class AccountService {
         Account saved = createAccountFromDTO(dto);
 
         return AccountDTO.builder()
+                .id(saved.getId())
                 .userId(saved.getUserId())
+                .cvu(saved.getCvu())
+                .alias(saved.getAlias())
                 .saldoDisponible(saved.getSaldoDisponible())
                 .build();
     }
 
     // 🔹 Interno: creación desde DTO con alias/cvu generados
     public Account createAccountFromDTO(AccountDTO dto) {
+
         Account account = Account.builder()
                 .userId(dto.getUserId())
                 .saldoDisponible(dto.getSaldoDisponible() != null ? dto.getSaldoDisponible() : 0.0)
@@ -37,7 +44,16 @@ public class AccountService {
                 .cvu(Generators.generateCvu())
                 .build();
 
-        return accountRepository.save(account);
+        Account saved = accountRepository.save(account);
+
+        // ⭐ Registrar movimiento inicial
+        transactionService.registerTransaction(
+                saved.getId(),
+                0.0,
+                "Cuenta creada"
+        );
+
+        return saved;
     }
 
     // 🔹 Creación manual desde Swagger
@@ -78,8 +94,20 @@ public class AccountService {
         Account acc = accountRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Cuenta no encontrada: " + id));
 
+        // 🔹 Actualizar alias
         if (updates.containsKey("alias")) {
-            acc.setAlias(updates.get("alias").toString());
+            Object aliasObj = updates.get("alias");
+            if (aliasObj != null) {
+                acc.setAlias(aliasObj.toString());
+            }
+        }
+
+        // 🔹 Actualizar saldo disponible
+        if (updates.containsKey("saldoDisponible")) {
+            Object saldoObj = updates.get("saldoDisponible");
+            if (saldoObj != null) {
+                acc.setSaldoDisponible(Double.valueOf(saldoObj.toString()));
+            }
         }
 
         Account saved = accountRepository.save(acc);
@@ -93,11 +121,73 @@ public class AccountService {
                 .build();
     }
 
-
-
-
-
     public List<Account> findAll() {
         return accountRepository.findAll();
     }
+
+    // Cargar saldo (depósito)
+    public AccountDTO deposit(Long accountId, Double amount, String description) {
+
+        if (amount == null || amount <= 0) {
+            throw new IllegalArgumentException("El monto a depositar debe ser mayor a 0");
+        }
+
+        Account acc = accountRepository.findById(accountId)
+                .orElseThrow(() -> new RuntimeException("Cuenta no encontrada: " + accountId));
+
+        // sumar saldo
+        acc.setSaldoDisponible(acc.getSaldoDisponible() + amount);
+        Account saved = accountRepository.save(acc);
+
+        // registrar transacción positiva
+        transactionService.registerTransaction(
+                saved.getId(),
+                amount,
+                description != null ? description : "Carga de saldo"
+        );
+
+        return AccountDTO.builder()
+                .id(saved.getId())
+                .userId(saved.getUserId())
+                .cvu(saved.getCvu())
+                .alias(saved.getAlias())
+                .saldoDisponible(saved.getSaldoDisponible())
+                .build();
+    }
+
+    // Debitar saldo (pago, envío, etc.)
+    public AccountDTO debit(Long accountId, Double amount, String description) {
+
+        if (amount == null || amount <= 0) {
+            throw new IllegalArgumentException("El monto a debitar debe ser mayor a 0");
+        }
+
+        Account acc = accountRepository.findById(accountId)
+                .orElseThrow(() -> new RuntimeException("Cuenta no encontrada: " + accountId));
+
+        // ❗ Validación de saldo negativo
+        if (acc.getSaldoDisponible() < amount) {
+            throw new RuntimeException("Saldo insuficiente");
+        }
+
+        // restar saldo
+        acc.setSaldoDisponible(acc.getSaldoDisponible() - amount);
+        Account saved = accountRepository.save(acc);
+
+        // registrar transacción negativa
+        transactionService.registerTransaction(
+                saved.getId(),
+                -amount,
+                description != null ? description : "Débito en cuenta"
+        );
+
+        return AccountDTO.builder()
+                .id(saved.getId())
+                .userId(saved.getUserId())
+                .cvu(saved.getCvu())
+                .alias(saved.getAlias())
+                .saldoDisponible(saved.getSaldoDisponible())
+                .build();
+    }
+
 }

@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
-@FeignClient(name = "accounts-service") // nombre en Eureka
+@FeignClient(name = "accounts-service")
 public interface AccountsClient {
 
     @PostMapping("/api/accounts")

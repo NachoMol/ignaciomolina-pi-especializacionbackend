@@ -11,8 +11,10 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class AccountDTO {
 
-    private Long userId;             // ID del usuario (viene del users-service)
-    private String cvu;              // opcional: puede generarse del lado del accounts-service
-    private String alias;            // opcional: idem arriba
-    private Double saldoDisponible;  // saldo inicial (por defecto 0.0)
+    private Long id;
+    private Long userId;
+    private String cvu;
+    private String alias;
+    private Double saldoDisponible;
 }
+
