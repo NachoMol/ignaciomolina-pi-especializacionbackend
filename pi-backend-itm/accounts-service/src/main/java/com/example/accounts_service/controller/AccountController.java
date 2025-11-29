@@ -1,10 +1,13 @@
 package com.example.accounts_service.controller;
 
 import com.example.accounts_service.dto.AccountDTO;
+import com.example.accounts_service.dto.CardDTO;
 import com.example.accounts_service.dto.TransactionDTO;
 import com.example.accounts_service.model.Account;
 import com.example.accounts_service.service.AccountService;
+import com.example.accounts_service.service.CardService;
 import com.example.accounts_service.service.TransactionService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -17,14 +20,18 @@ import java.util.Map;
 public class AccountController {
 
     private final AccountService accountService;
+    private final TransactionService transactionService;
+    private final CardService cardService;
 
     public AccountController(AccountService accountService,
-                             TransactionService transactionService) {
+                             TransactionService transactionService, CardService cardService) {
         this.accountService = accountService;
         this.transactionService = transactionService;
+        this.cardService = cardService;
     }
 
-    private final TransactionService transactionService;
+
+
 
 
 
@@ -168,6 +175,61 @@ public class AccountController {
                     .body("Error al debitar saldo");
         }
     }
+
+    @GetMapping("/{id}/cards")
+    public ResponseEntity<?> getCards(@PathVariable Long id) {
+        try {
+            List<CardDTO> cards = cardService.getCards(id);
+            return ResponseEntity.ok(cards); // lista vacía o con tarjetas
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Error al obtener tarjetas");
+        }
+    }
+
+    @GetMapping("/{id}/cards/{cardId}")
+    public ResponseEntity<?> getCard(@PathVariable Long id, @PathVariable Long cardId) {
+        try {
+            CardDTO card = cardService.getCard(id, cardId);
+            return ResponseEntity.ok(card);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(404).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Error al obtener la tarjeta");
+        }
+    }
+
+    @PostMapping("/{id}/cards")
+    public ResponseEntity<?> createCard(
+            @PathVariable Long id,
+            @RequestBody CardDTO dto) {
+
+        try {
+            CardDTO created = cardService.createCard(id, dto);
+            return ResponseEntity.status(201).body(created);
+
+        } catch (RuntimeException e) {
+            if (e.getMessage().contains("ya asociada"))
+                return ResponseEntity.status(409).body(e.getMessage());
+
+            return ResponseEntity.status(400).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Error al crear tarjeta");
+        }
+    }
+
+    @DeleteMapping("/{id}/cards/{cardId}")
+    public ResponseEntity<?> deleteCard(@PathVariable Long id, @PathVariable Long cardId) {
+        try {
+            cardService.deleteCard(id, cardId);
+            return ResponseEntity.ok("Tarjeta eliminada correctamente");
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(404).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Error al eliminar la tarjeta");
+        }
+    }
+
+
 
 
 
