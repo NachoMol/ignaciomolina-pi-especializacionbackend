@@ -1,9 +1,6 @@
 package com.example.digital_payment_molina.users_service.controller;
 
-import com.example.digital_payment_molina.users_service.dto.LoginRequestDTO;
-import com.example.digital_payment_molina.users_service.dto.RegisterRequestDTO;
-import com.example.digital_payment_molina.users_service.dto.UserDTO;
-import com.example.digital_payment_molina.users_service.dto.UserProfileDTO;
+import com.example.digital_payment_molina.users_service.dto.*;
 import com.example.digital_payment_molina.users_service.exceptions.UsuarioNoEncontradoException;
 import com.example.digital_payment_molina.users_service.model.AuthResponse;
 import com.example.digital_payment_molina.users_service.service.UserService;
@@ -18,6 +15,9 @@ import java.util.Map;
 @RequestMapping("/api/users")
 public class UserController {
 
+    private static final String HEADER_USER_ID = "X-USER-ID";
+    private static final String HEADER_USER_ROLES = "X-USER-ROLES";
+
     private final UserService userService;
 
     public UserController(UserService userService) {
@@ -27,6 +27,23 @@ public class UserController {
     // ================================
     // AUTH
     // ================================
+
+
+
+    // 🔒 Helper: ¿es ADMIN?
+    private boolean isAdmin(String rolesHeader) {
+        if (rolesHeader == null) return false;
+        return rolesHeader.toUpperCase().contains("ADMIN");
+    }
+
+    // 🔒 Helper: ¿es el mismo usuario o ADMIN?
+    private boolean isSameUserOrAdmin(Long pathId, Long authUserId, String rolesHeader) {
+        if (authUserId != null && pathId != null && authUserId.equals(pathId)) {
+            return true;
+        }
+        return isAdmin(rolesHeader);
+    }
+
 
     // Registro
     @PostMapping("/register")
@@ -75,26 +92,59 @@ public class UserController {
 
     // GET all users
     @GetMapping
-    public ResponseEntity<?> getAllUsers() {
+    public ResponseEntity<?> getAllUsers(
+            @RequestHeader(HEADER_USER_ROLES) String rolesHeader) {
+
+        if (!isAdmin(rolesHeader)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body("No tiene permisos para listar todos los usuarios");
+        }
+
         return ResponseEntity.ok(userService.getAllUsers());
     }
 
-    // GET user by ID (API oficial Sprint 2)
+    // GET user by ID
     @GetMapping("/{id}")
-    public ResponseEntity<?> getUserById(@PathVariable Long id) {
+    public ResponseEntity<?> getUserById(
+            @PathVariable Long id,
+            @RequestHeader(HEADER_USER_ID) Long authUserId,
+            @RequestHeader(HEADER_USER_ROLES) String rolesHeader) {
+
+        if (!isSameUserOrAdmin(id, authUserId, rolesHeader)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body("No tiene permisos para ver este usuario");
+        }
+
         try {
             UserDTO user = userService.getUserById(id);
             return ResponseEntity.ok(user);
         } catch (UsuarioNoEncontradoException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body("Error al obtener usuario");
         }
     }
+
+    //GET user by email
+    @GetMapping("/email")
+    public ResponseEntity<?> getByEmail(@RequestParam String email) {
+        UserAuthDTO user = userService.getByEmail(email);
+        return ResponseEntity.ok(user);
+    }
+
 
     // PATCH user
     @PatchMapping("/{id}")
     public ResponseEntity<?> updateUser(
             @PathVariable Long id,
+            @RequestHeader(HEADER_USER_ID) Long authUserId,
+            @RequestHeader(HEADER_USER_ROLES) String rolesHeader,
             @RequestBody Map<String, Object> updates) {
+
+        if (!isSameUserOrAdmin(id, authUserId, rolesHeader)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body("No tiene permisos para modificar este usuario");
+        }
 
         try {
             UserDTO updated = userService.updateUser(id, updates);
@@ -125,7 +175,16 @@ public class UserController {
     // PROFILE (Opción B)
     // ================================
     @GetMapping("/{id}/profile")
-    public ResponseEntity<?> getUserProfile(@PathVariable Long id) {
+    public ResponseEntity<?> getUserProfile(
+            @PathVariable Long id,
+            @RequestHeader(HEADER_USER_ID) Long authUserId,
+            @RequestHeader(HEADER_USER_ROLES) String rolesHeader) {
+
+        if (!isSameUserOrAdmin(id, authUserId, rolesHeader)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body("No tiene permisos para ver este perfil");
+        }
+
         try {
             UserProfileDTO profile = userService.getUserProfile(id);
             return ResponseEntity.ok(profile);

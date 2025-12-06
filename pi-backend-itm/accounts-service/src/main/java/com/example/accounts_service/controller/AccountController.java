@@ -19,6 +19,9 @@ import java.util.Map;
 @RequestMapping("/api/accounts")
 public class AccountController {
 
+    private static final String HEADER_USER_ID = "X-USER-ID";
+    private static final String HEADER_USER_ROLES = "X-USER-ROLES";
+
     private final AccountService accountService;
     private final TransactionService transactionService;
     private final CardService cardService;
@@ -32,7 +35,12 @@ public class AccountController {
 
 
 
-
+    // 🔒 Helper: validar que la cuenta pertenece al usuario autenticado
+    private boolean isOwner(Long accountId, Long authUserId) {
+        if (accountId == null || authUserId == null) return false;
+        Account acc = accountService.getAccountEntityById(accountId);
+        return authUserId.equals(acc.getUserId());
+    }
 
 
     // Crear cuenta
@@ -52,7 +60,7 @@ public class AccountController {
     }
 
 
-    // ✔ Obtener cuenta por ID de usuario (primero el específico)
+    // ✔ Obtener cuenta por ID de usuario
     @GetMapping("/user/{userId}")
     public ResponseEntity<AccountDTO> getAccountByUser(@PathVariable Long userId) {
 
@@ -69,9 +77,17 @@ public class AccountController {
         return ResponseEntity.ok(dto);
     }
 
-    // ✔ Obtener cuenta por ID de la cuenta (después el genérico)
+    // ✔ Obtener cuenta por ID de la cuenta
     @GetMapping("/{id}")
-    public ResponseEntity<?> getAccountById(@PathVariable Long id) {
+    public ResponseEntity<?> getAccountById(
+            @PathVariable Long id,
+            @RequestHeader(HEADER_USER_ID) Long authUserId) {
+
+        if (!isOwner(id, authUserId)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body("No tiene permisos para ver esta cuenta");
+        }
+
         try {
             return ResponseEntity.ok(accountService.getAccountById(id));
         } catch (Exception e) {
@@ -101,7 +117,15 @@ public class AccountController {
     }
 
     @GetMapping("/{id}/transactions")
-    public ResponseEntity<?> getLastTransactions(@PathVariable Long id) {
+    public ResponseEntity<?> getLastTransactions(
+            @PathVariable Long id,
+            @RequestHeader(HEADER_USER_ID) Long authUserId) {
+
+        if (!isOwner(id, authUserId)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body("No tiene permisos para ver las transacciones de esta cuenta");
+        }
+
         try {
             List<TransactionDTO> txs = transactionService.getLastTransactions(id);
             return ResponseEntity.ok(txs);
@@ -115,7 +139,13 @@ public class AccountController {
     @PostMapping("/{id}/deposit")
     public ResponseEntity<?> deposit(
             @PathVariable Long id,
+            @RequestHeader(HEADER_USER_ID) Long authUserId,
             @RequestBody Map<String, Object> body) {
+
+        if (!isOwner(id, authUserId)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body("No tiene permisos para operar esta cuenta");
+        }
 
         try {
             Object amountObj = body.get("amount");
@@ -132,10 +162,7 @@ public class AccountController {
 
             AccountDTO updated = accountService.deposit(id, amount, description);
             return ResponseEntity.ok(updated);
-
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -147,7 +174,13 @@ public class AccountController {
     @PostMapping("/{id}/debit")
     public ResponseEntity<?> debit(
             @PathVariable Long id,
+            @RequestHeader(HEADER_USER_ID) Long authUserId,
             @RequestBody Map<String, Object> body) {
+
+        if (!isOwner(id, authUserId)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body("No tiene permisos para operar esta cuenta");
+        }
 
         try {
             Object amountObj = body.get("amount");
@@ -164,20 +197,26 @@ public class AccountController {
 
             AccountDTO updated = accountService.debit(id, amount, description);
             return ResponseEntity.ok(updated);
-
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        } catch (RuntimeException e) {
-            // acá entraría "Saldo insuficiente" o "Cuenta no encontrada"
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Error al debitar saldo");
+                    .body("Error al debitar de la cuenta");
         }
     }
 
+    // Lista todas las tarjetas de una cuenta
     @GetMapping("/{id}/cards")
-    public ResponseEntity<?> getCards(@PathVariable Long id) {
+    public ResponseEntity<?> getCards(
+            @PathVariable Long id,
+            @RequestHeader("X-USER-ID") Long authUserId) {
+
+        // 🔒 Validar que la cuenta pertenece al usuario autenticado
+        if (!isOwner(id, authUserId)) {
+            return ResponseEntity.status(403)
+                    .body("No tiene permisos para ver las tarjetas de esta cuenta");
+        }
+
         try {
             List<CardDTO> cards = cardService.getCards(id);
             return ResponseEntity.ok(cards); // lista vacía o con tarjetas
@@ -187,7 +226,17 @@ public class AccountController {
     }
 
     @GetMapping("/{id}/cards/{cardId}")
-    public ResponseEntity<?> getCard(@PathVariable Long id, @PathVariable Long cardId) {
+    public ResponseEntity<?> getCard(
+            @PathVariable Long id,
+            @PathVariable Long cardId,
+            @RequestHeader("X-USER-ID") Long authUserId) {
+
+        // 🔒 Validar que la cuenta pertenece al usuario autenticado
+        if (!isOwner(id, authUserId)) {
+            return ResponseEntity.status(403)
+                    .body("No tiene permisos para ver las tarjetas de esta cuenta");
+        }
+
         try {
             CardDTO card = cardService.getCard(id, cardId);
             return ResponseEntity.ok(card);
@@ -201,16 +250,23 @@ public class AccountController {
     @PostMapping("/{id}/cards")
     public ResponseEntity<?> createCard(
             @PathVariable Long id,
+            @RequestHeader("X-USER-ID") Long authUserId,
             @RequestBody CardDTO dto) {
+
+        // 🔒 Validar que la cuenta pertenece al usuario autenticado
+        if (!isOwner(id, authUserId)) {
+            return ResponseEntity.status(403)
+                    .body("No tiene permisos para agregar tarjetas a esta cuenta");
+        }
 
         try {
             CardDTO created = cardService.createCard(id, dto);
             return ResponseEntity.status(201).body(created);
 
         } catch (RuntimeException e) {
-            if (e.getMessage().contains("ya asociada"))
+            if (e.getMessage() != null && e.getMessage().contains("ya asociada")) {
                 return ResponseEntity.status(409).body(e.getMessage());
-
+            }
             return ResponseEntity.status(400).body(e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.status(500).body("Error al crear tarjeta");
@@ -218,7 +274,17 @@ public class AccountController {
     }
 
     @DeleteMapping("/{id}/cards/{cardId}")
-    public ResponseEntity<?> deleteCard(@PathVariable Long id, @PathVariable Long cardId) {
+    public ResponseEntity<?> deleteCard(
+            @PathVariable Long id,
+            @PathVariable Long cardId,
+            @RequestHeader("X-USER-ID") Long authUserId) {
+
+        // 🔒 Validar que la cuenta pertenece al usuario autenticado
+        if (!isOwner(id, authUserId)) {
+            return ResponseEntity.status(403)
+                    .body("No tiene permisos para eliminar tarjetas de esta cuenta");
+        }
+
         try {
             cardService.deleteCard(id, cardId);
             return ResponseEntity.ok("Tarjeta eliminada correctamente");
@@ -228,7 +294,6 @@ public class AccountController {
             return ResponseEntity.status(500).body("Error al eliminar la tarjeta");
         }
     }
-
 
 
 

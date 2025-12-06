@@ -30,12 +30,15 @@ public class JwtUtil {
         this.key = Keys.hmacShaKeyFor(keyBytes); // <-- Esto garantiza 256 bits reales
     }
 
-    public String generateToken(String email) {
+    public String generateToken(Long userId, String email, String rolesCsv) {
+
         return Jwts.builder()
                 .setSubject(email)
+                .claim("id", userId)
+                .claim("roles", rolesCsv) // ej: "ADMIN", "COMMON"
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + expiration))
-                .signWith(key, SignatureAlgorithm.HS256) // <-- key correcta
+                .signWith(key, SignatureAlgorithm.HS256)
                 .compact();
     }
 

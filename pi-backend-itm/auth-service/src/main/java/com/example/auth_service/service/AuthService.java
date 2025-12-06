@@ -1,5 +1,7 @@
 package com.example.auth_service.service;
 
+import com.example.auth_service.dto.UserAuthDTO;
+import com.example.auth_service.dto.UserDTO;
 import com.example.auth_service.feign.UsersClient;
 import com.example.auth_service.dto.AuthRequest;
 import com.example.auth_service.dto.AuthResponse;
@@ -26,36 +28,58 @@ public class AuthService {
     // ✅ Login real vía users-service (validación de email/pass)
     public AuthResponse login(AuthRequest request) {
 
+        // Validaciones simples
+        if (request.getEmail() == null || request.getEmail().isBlank()) {
+            throw new IllegalArgumentException("El email es obligatorio");
+        }
+
+        if (request.getPassword() == null || request.getPassword().isBlank()) {
+            throw new IllegalArgumentException("La contraseña es obligatoria");
+        }
+
         try {
+            // 1️⃣ Validar credenciales vía users-service
             Boolean valid = usersClient.validateCredentials(
                     request.getEmail(),
                     request.getPassword()
             );
 
             if (valid == null || !valid) {
+                // Esto cubre password incorrecta
                 throw new IllegalArgumentException("Email o contraseña incorrectos");
             }
 
-        } catch (FeignException.NotFound e) {
-            // Usuario inexistente
-            throw new IllegalArgumentException("Usuario (email) inexistente");
+            // 2️⃣ Obtener usuario desde users-service
+            UserAuthDTO user = usersClient.getUserByEmail(request.getEmail());
 
-        } catch (FeignException.BadRequest e) {
-            // Error de validación: email vacío, password vacía, formatos inválidos
-            throw new IllegalArgumentException("Email o contraseña inválidos");
+            // 3️⃣ Generar token
+            String rolesCsv = String.join(",", user.getRoles());
+            String token = jwtUtil.generateToken(user.getId(), user.getEmail(), rolesCsv);
+
+            return new AuthResponse(token, user.getId(), rolesCsv);
+
+        } catch (FeignException.NotFound e) {
+            // Usuario inexistente → 404
+            throw new IllegalArgumentException("Usuario inexistente");
 
         } catch (FeignException.Unauthorized e) {
-            // Credenciales inválidas
+            // Password incorrecta → 401 lógico, pero devolvemos 400 para mantener compatibilidad
             throw new IllegalArgumentException("Email o contraseña incorrectos");
 
-        } catch (Exception e) {
-            throw new RuntimeException("Error interno al validar credenciales");
-        }
+        } catch (FeignException.BadRequest e) {
+            throw new IllegalArgumentException("Email o contraseña inválidos");
 
-        // 🟢 Validación exitosa → generar token JWT
-        String token = jwtUtil.generateToken(request.getEmail());
-        return new AuthResponse(token);
+        } catch (IllegalArgumentException e) {
+            // Esto permite devolver el mensaje real al handler
+            throw e;
+
+        } catch (Exception e) {
+            // Este catch solo captura errores inesperados
+            e.printStackTrace(); // para verlos en consola
+            throw new RuntimeException("Error interno al autenticar");
+        }
     }
+
 
     // 🔒 Logout → invalidar token en blacklist
     public void logout(String token) {

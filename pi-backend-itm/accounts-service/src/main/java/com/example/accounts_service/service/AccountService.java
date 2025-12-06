@@ -21,7 +21,12 @@ public class AccountService {
         this.transactionService = transactionService;
     }
 
-    // ⭐ NUEVO - Método que usan users-service y tus tests
+    // 🔒 Helper: obtener Account como entidad (no DTO)
+    public Account getAccountEntityById(Long id) {
+        return accountRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Cuenta no encontrada: " + id));
+    }
+
     public AccountDTO createAccount(AccountDTO dto) {
         Account saved = createAccountFromDTO(dto);
 

@@ -1,9 +1,6 @@
 package com.example.digital_payment_molina.users_service.service;
 
-import com.example.digital_payment_molina.users_service.dto.AccountDTO;
-import com.example.digital_payment_molina.users_service.dto.RegisterRequestDTO;
-import com.example.digital_payment_molina.users_service.dto.UserDTO;
-import com.example.digital_payment_molina.users_service.dto.UserProfileDTO;
+import com.example.digital_payment_molina.users_service.dto.*;
 import com.example.digital_payment_molina.users_service.exceptions.ContrasenaIncorrectaException;
 import com.example.digital_payment_molina.users_service.exceptions.UsuarioNoEncontradoException;
 import com.example.digital_payment_molina.users_service.feign.AccountsClient;
@@ -20,6 +17,8 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 public class UserService {
@@ -168,6 +167,23 @@ public class UserService {
                 user.getDni(),
                 user.getEmail(),
                 user.getTelefono()
+        );
+    }
+
+    public UserAuthDTO getByEmail(String email) {
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UsuarioNoEncontradoException("Usuario no encontrado con email: " + email));
+
+        Set<String> roles = user.getRoles()
+                .stream()
+                .map(Role::getName)
+                .collect(Collectors.toSet());
+
+        return new UserAuthDTO(
+                user.getId(),
+                user.getEmail(),
+                roles
         );
     }
 
