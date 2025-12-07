@@ -30,6 +30,34 @@ public class TransactionService {
                 .toList();
     }
 
+    public List<TransactionDTO> getAllTransactions(Long accountId) {
+        return repo.findByAccountIdOrderByCreatedAtDesc(accountId)
+                .stream()
+                .map(t -> TransactionDTO.builder()
+                        .id(t.getId())
+                        .accountId(t.getAccountId())
+                        .amount(t.getAmount())
+                        .description(t.getDescription())
+                        .createdAt(t.getCreatedAt())
+                        .build())
+                .toList();
+    }
+
+    public TransactionDTO getTransactionById(Long accountId, Long txId) {
+
+        Transaction t = repo.findByIdAndAccountId(txId, accountId)
+                .orElseThrow(() -> new RuntimeException("Transacción no encontrada"));
+
+        return TransactionDTO.builder()
+                .id(t.getId())
+                .accountId(t.getAccountId())
+                .amount(t.getAmount())
+                .description(t.getDescription())
+                .createdAt(t.getCreatedAt())
+                .build();
+    }
+
+
     public void registerTransaction(Long accountId, Double amount, String description) {
         Transaction t = Transaction.builder()
                 .accountId(accountId)
@@ -40,4 +68,6 @@ public class TransactionService {
 
         repo.save(t);
     }
+
+
 }
