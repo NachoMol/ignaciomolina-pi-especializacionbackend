@@ -186,9 +186,9 @@ public class AccountController {
             @RequestHeader(HEADER_USER_ROLES) String rolesHeader,
             @RequestBody Map<String, Object> body) {
 
-        if (!hasAccess(id, authUserId, rolesHeader)) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body("No tiene permisos para operar esta cuenta");
+        if (!rolesHeader.contains("ADMIN")) {
+            return ResponseEntity.status(403)
+                    .body("Solo ADMIN puede realizar depósitos directos");
         }
 
         try {
@@ -199,10 +199,13 @@ public class AccountController {
 
             Double amount = Double.valueOf(amountObj.toString());
 
-            String description = body.containsKey("description") ? body.get("description").toString() : null;
+            String description = body.containsKey("description")
+                    ? body.get("description").toString()
+                    : null;
 
             AccountDTO updated = accountService.deposit(id, amount, description);
             return ResponseEntity.ok(updated);
+
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         } catch (Exception e) {
@@ -219,9 +222,9 @@ public class AccountController {
             @RequestHeader(HEADER_USER_ROLES) String rolesHeader,
             @RequestBody Map<String, Object> body) {
 
-        if (!hasAccess(id, authUserId, rolesHeader)) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body("No tiene permisos para operar esta cuenta");
+        if (!rolesHeader.contains("ADMIN")) {
+            return ResponseEntity.status(403)
+                    .body("Solo ADMIN puede realizar débitos directos");
         }
 
         try {
@@ -231,17 +234,22 @@ public class AccountController {
             }
 
             Double amount = Double.valueOf(amountObj.toString());
-            String description = body.containsKey("description") ? body.get("description").toString() : null;
+
+            String description = body.containsKey("description")
+                    ? body.get("description").toString()
+                    : null;
 
             AccountDTO updated = accountService.debit(id, amount, description);
             return ResponseEntity.ok(updated);
+
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Error al debitar de la cuenta");
+                    .body("Error al debitar la cuenta");
         }
     }
+
 
     // Listar tarjetas
     @GetMapping("/{id}/cards")
