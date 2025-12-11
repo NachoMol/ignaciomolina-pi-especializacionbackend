@@ -20,7 +20,7 @@ public class AccountCardCreationTests extends BaseTest {
         json.put("type", "credito");
 
         given()
-                .header("Authorization", TOKEN)
+                .header("Authorization", ADMIN_TOKEN)
                 .header("Content-Type", "application/json")
                 .body(json.toString())
                 .when()

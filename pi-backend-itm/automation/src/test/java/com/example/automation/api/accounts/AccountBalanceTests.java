@@ -11,7 +11,7 @@ public class AccountBalanceTests extends BaseTest {
     public void testAccountBalance() {
 
         given()
-                .header("Authorization", TOKEN)
+                .header("Authorization", ADMIN_TOKEN)
                 .when()
                 .get("/api/accounts/1")
                 .then()

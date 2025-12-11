@@ -11,7 +11,7 @@ public class UserProfileTests extends BaseTest {
     public void testUserProfile() {
 
         given()
-                .header("Authorization", TOKEN)
+                .header("Authorization", ADMIN_TOKEN)
                 .when()
                 .get("/api/users/1/profile")
                 .then()

@@ -11,7 +11,7 @@ public class AccountCardsTests extends BaseTest {
     public void testGetCards() {
 
         given()
-                .header("Authorization", TOKEN)
+                .header("Authorization", ADMIN_TOKEN)
                 .when()
                 .get("/api/accounts/1/cards")
                 .then()
