@@ -12,7 +12,7 @@
 **Control de versiones**: repositorio GitHub donde se versiona el código y las configuraciones del entorno.
 
 
-> **Descripción breve de cada microservicio:**  
+## **Descripción breve de cada microservicio:**  
 > - **User Service:** Gestiona usuarios
 > - **Account Service:** Administra cuentas, saldos, alias y transacciones.
 > - **Auth Service** Gestiona autenticación  
