@@ -2,6 +2,7 @@ package com.example.accounts_service.controller;
 
 import com.example.accounts_service.dto.AccountDTO;
 import com.example.accounts_service.dto.CardDTO;
+import com.example.accounts_service.dto.CreateTransferenceRequestDTO;
 import com.example.accounts_service.dto.TransactionDTO;
 import com.example.accounts_service.model.Account;
 import com.example.accounts_service.service.AccountService;
@@ -10,6 +11,7 @@ import com.example.accounts_service.service.TransactionService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import com.example.accounts_service.service.TransferenceService;
 
 import java.util.List;
 import java.util.Map;
@@ -25,11 +27,16 @@ public class AccountController {
     private final TransactionService transactionService;
     private final CardService cardService;
 
+    private final TransferenceService transferenceService;
+
     public AccountController(AccountService accountService,
-                             TransactionService transactionService, CardService cardService) {
+                             TransactionService transactionService,
+                             CardService cardService,
+                             TransferenceService transferenceService) {
         this.accountService = accountService;
         this.transactionService = transactionService;
         this.cardService = cardService;
+        this.transferenceService = transferenceService;
     }
 
     // === NUEVO MÉTODO CENTRALIZADO DE PERMISOS ===
@@ -344,40 +351,39 @@ public class AccountController {
         }
     }
     @PostMapping("/{id}/transferences")
-    public ResponseEntity<?> registerTransference(
+    public ResponseEntity<?> transfer(
             @PathVariable Long id,
             @RequestHeader("X-USER-ID") Long authUserId,
             @RequestHeader("X-USER-ROLES") String rolesHeader,
-            @RequestBody Map<String, Object> body) {
+            @RequestBody CreateTransferenceRequestDTO dto) {
 
         if (!hasAccess(id, authUserId, rolesHeader)) {
-            return ResponseEntity.status(403)
-                    .body("No tiene permisos para operar esta cuenta");
+            return ResponseEntity.status(403).body("Permisos insuficientes");
         }
 
         try {
-            Long cardId = Long.valueOf(body.get("cardId").toString());
-            Double amount = Double.valueOf(body.get("amount").toString());
+            transferenceService.createTransference(id, dto);
+            return ResponseEntity.ok("Transferencia realizada correctamente");
 
-            if (amount <= 0) {
-                return ResponseEntity.badRequest().body("El monto debe ser mayor a 0");
-            }
-
-            // validar tarjeta
-            cardService.getCard(id, cardId);
-
-            // hacer la acreditación
-            AccountDTO updated = accountService.deposit(
-                    id,
-                    amount,
-                    "Carga desde tarjeta #" + cardId
-            );
-
-            return ResponseEntity.status(201).body(updated);
-
-        } catch (RuntimeException e) {
+        } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
+
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(410).body(e.getMessage());
         }
+    }
+
+    @GetMapping("/{id}/transferences")
+    public ResponseEntity<?> getLastTransferences(
+            @PathVariable Long id,
+            @RequestHeader("X-USER-ID") Long authUserId,
+            @RequestHeader("X-USER-ROLES") String rolesHeader) {
+
+        if (!hasAccess(id, authUserId, rolesHeader)) {
+            return ResponseEntity.status(403).body("Permisos insuficientes");
+        }
+
+        return ResponseEntity.ok(transferenceService.getLastTransferences(id));
     }
 
 }
